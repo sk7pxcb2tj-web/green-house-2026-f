@@ -1,0 +1,23 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "gh2026": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "k": {
+        "$key": {
+          ".validate": "newData.isString() && newData.val().length < 4000000"
+        }
+      },
+      "bn": {
+        ".validate": "newData.isNumber()"
+      },
+      "meta": {
+        "init": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    }
+  }
+}
