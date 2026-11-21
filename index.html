@@ -490,7 +490,7 @@ state.scans=148;state.log=[['08:55','ฝ่ายพยาบาลปิดเ�
 const esc=s=>String(s).replace(/"/g,'&quot;'),SOSN=['รอรับเรื่อง','กำลังช่วยเหลือ','เสร็จสิ้น'],now=()=>new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
 const ALLT=['ภาพรวม','แจ้งเหตุฉุกเฉิน','ศูนย์ควบคุมสด','รายการสั่งซื้อ','สต็อก','สแกน','งบประมาณ','ตารางแข่ง','ร้านค้า','ทำเนียบ'];
 const EDITS={fin:['รายการสั่งซื้อ','งบประมาณ'],sub:['สต็อก','สแกน']};
-const can=n=>n==='แจ้งเหตุฉุกเฉิน'||(n!=='ภาพรวม'&&(state.role==='super'||EDITS[state.role].includes(n)));
+const can=n=>n==='ภาพรวม'?false:n==='บันทึกการทำงาน'?state.role==='super':n==='สแกน'?(aclOk('สแกน')||aclOk('เช็กชื่อ')):aclOk(n);
 const badge=()=>{const n=state.sos.filter(x=>x.st<2).length;if(state.role)$('#adminLbl').textContent='แผงแอดมิน'+(n?' · '+n:'')};
 let day=0;
 function paintSched(d=day){day=d;$('#schedList').innerHTML=SCH[d].map(r=>`<div class="row"><div class="time">${r[0]}</div><div class="ico">${ic(r[2])}</div><div>${r[1]}<div class="sub">${r[3]}</div></div></div>`).join('')||'<div class="sub">ยังไม่มีรายการ</div>'}
@@ -541,7 +541,7 @@ const csvB=k=>`<button class="btn sm" data-csv="${k}">คัดลอก CSV</bu
 const stp=(a,v)=>`<div class="stepper"><button class="w" data-sd="${a},-10">−10</button><button data-sd="${a},-1">−</button><b>${v}</b><button data-sd="${a},1">+</button><button class="w" data-sd="${a},10">+10</button></div>`;
 const addB=(k,t)=>`<button class="btn pri sm" data-add="${k}">+ ${t}</button>`;
 function pane3(n){const s=state;
- if(n==='ภาพรวม'||n==='แจ้งเหตุฉุกเฉิน')return ph(n,n==='แจ้งเหตุฉุกเฉิน'?csvB('sos'):'')+pane2(n)+(n==='ภาพรวม'?`<div class="card" style="margin-top:16px"><h3>ทางลัด</h3><div class="act" style="margin-top:10px">${[['รายการสั่งซื้อ','list'],['สต็อก','box'],['ศูนย์ควบคุมสด','gear']].map(t=>`<button class="btn sm" data-t="${t[0]}">${ic(t[1],16)}${t[0]}</button>`).join('')}<button class="btn pri sm" data-sumcard>สร้างการ์ดสรุปรายวัน (PNG)</button>${''}</div></div>`:'');
+ if(n==='ภาพรวม'||n==='แจ้งเหตุฉุกเฉิน')return ph(n,n==='แจ้งเหตุฉุกเฉิน'?csvB('sos'):'')+pane2(n)+(n==='ภาพรวม'?`<div class="card" style="margin-top:16px"><h3>ทางลัด</h3><div class="act" style="margin-top:10px">${[['รายการสั่งซื้อ','list'],['สต็อก','box'],['ศูนย์ควบคุมสด','gear']].filter(t=>canView(t[0])).map(t=>`<button class="btn sm" data-t="${t[0]}">${ic(t[1],16)}${t[0]}</button>`).join('')}<button class="btn pri sm" data-sumcard>สร้างการ์ดสรุปรายวัน (PNG)</button>${''}</div></div>`:'');
  if(n==='ศูนย์ควบคุมสด')return ph(n)+`<div class="card"><h3>หัวข้อและประกาศ</h3><div class="fl"><label class="fld">หัวข้อเว็บไซต์<input id="eTitle" value="${esc($('#title').textContent)}"></label><label class="fld">ข้อความประกาศด่วน<input id="eTk" value="${esc($('#tk').textContent)}"></label></div><button class="btn pri" data-pub>เผยแพร่ขึ้นหน้าเว็บ</button></div><div class="card"><h3>เหรียญรางวัล</h3><div class="sub">กดแล้วหน้าเว็บอัปเดตทันที</div>${s.m.map((t,i)=>`<div class="rw"><b style="flex:1 1 130px"><span class="dot" style="background:${t.c}"></span>${t.n}</b>${[['g','ทอง'],['s','เงิน'],['b','ทองแดง']].map(f=>`<span class="sub">${f[1]}</span><div class="stepper"><button data-md="${i},${f[0]},-1">−</button><b>${t[f[0]]}</b><button data-md="${i},${f[0]},1">+</button></div>`).join('')}</div>`).join('')}</div>`;
  if(n==='ตารางแข่ง')return ph(n,addB('sc','เพิ่มรายการ')+`<button class="btn sm" data-sort>เรียงตามเวลา</button>`)+`<div class="seg" style="max-width:360px">${[0,1,2].map(d=>`<button class="${d==aday?'on':''}" data-day="${d}">วันที่ ${d+1}</button>`).join('')}</div><div class="card">${SCH[aday].map((r,i)=>`<div class="rw"><input class="tm" data-e="sc,${i},0" value="${esc(r[0])}"><input class="nm" data-e="sc,${i},1" value="${esc(r[1])}"><input class="pl" data-e="sc,${i},3" value="${esc(r[3])}"><button class="btn sm" data-del="sc,${i}">ลบ</button></div>`).join('')||'<div class="sub">ยังไม่มีรายการ กด “เพิ่มรายการ”</div>'}</div>`;
  if(n==='ร้านค้า')return ph(n,srch+addB('it','เพิ่มสินค้า'))+`<div class="pcs">${ITEMS.map((x,i)=>`<div class="card" data-s="${esc(x[0])}"><label class="pimg" style="background-image:${x[4]?`url('${x[4]}')`:'none'};background-color:#0a8f68;${x[4]?'background-size:contain;background-repeat:no-repeat;background-position:center':'background-image:'+GRAD}">${x[4]?'':ic(x[3],40)}<span>เปลี่ยนรูป</span><input type="file" accept="image/*" data-img="it,${i}"></label><div class="pf"><label class="fld">ชื่อสินค้า<input data-e="it,${i},0" value="${esc(x[0])}"></label><div class="two"><label class="fld">ราคา (บาท)<input type="number" min="0" data-e="it,${i},1" value="${x[1]}"></label><label class="fld">คงเหลือ (ชิ้น)<input type="number" min="0" data-e="it,${i},5" value="${x[5]}"></label></div><div class="act"><label class="swl"><input type="checkbox" class="sw" data-e="it,${i},6" ${x[6]?'checked':''}>เปิดขาย</label><span class="sp"></span>${x[4]?`<button class="btn sm" data-rmimg="it,${i}">ลบรูป</button>`:''}<button class="btn sm" data-del="it,${i}">ลบ</button></div></div></div>`).join('')}</div>`;
@@ -550,7 +550,7 @@ function pane3(n){const s=state;
  if(n==='งบประมาณ'){const sp=s.led.reduce((a,x)=>a+x[1],0),pc=Math.min(100,Math.round(sp/Math.max(1,s.cap)*100));return ph(n,addB('lg','เพิ่มรายการ')+csvB('led'))+`<div class="card"><div class="fl"><label class="fld">งบประมาณรวม (บาท)<input type="number" min="0" data-e="cap" value="${s.cap}"></label><div><div class="sub">เบิกจ่ายแล้ว ${pc}%</div><div class="price">฿${sp.toLocaleString()}</div><div class="sub">คงเหลือ ฿${(s.cap-sp).toLocaleString()}</div></div></div><div class="bar"><i style="width:${pc}%"></i></div></div><div class="card"><h3>รายการเบิกจ่าย</h3>${s.led.map((x,i)=>`<div class="rw"><input class="nm" data-e="lg,${i},0" value="${esc(x[0])}"><input class="pl" type="number" min="0" data-e="lg,${i},1" value="${x[1]}"><button class="btn sm" data-del="lg,${i}">ลบ</button></div>`).join('')}</div>`}
  if(n==='สต็อก')return ph(n,srch+addB('st','เพิ่มรายการ')+csvB('stock'))+`<div class="card">${s.stock.map((x,i)=>`<div class="rw" data-s="${esc(x[0])}"><input class="nm" data-e="st,${i},0" value="${esc(x[0])}">${stp(i,x[1])}<span class="tag ${x[1]==0?'':x[1]<50?'wait':'ok'}">${x[1]==0?'หมด':x[1]<50?'ใกล้หมด':'พอ'}</span><button class="btn sm" data-del="st,${i}">ลบ</button></div>`).join('')}</div>`;
  return ph(n)+`<div class="seg" style="max-width:380px">${['สแกนคูปองอาหาร','สแกนจ่ายเสื้อ'].map((t,i)=>`<button class="${i==smode?'on':''}" data-sm="${i}">${t}</button>`).join('')}</div><div class="grid g2"><div class="card"><div class="scan">${ic('qr',64)}</div><div class="fl" style="grid-template-columns:1fr auto;align-items:end"><label class="fld">หรือกรอกรหัสนักเรียน<input id="sidIn" inputmode="numeric" placeholder="เช่น 64012"></label><button class="btn pri" data-scan>ยืนยัน</button></div></div><div class="card"><div class="two"><div><div class="price" style="font-size:32px">${s.scans}</div><div class="sub">คูปองที่สแกนแล้ว</div></div><div><div class="price" style="font-size:32px">${s.shirts}</div><div class="sub">เสื้อที่จ่ายแล้ว</div></div></div><h3 style="margin-top:16px">สแกนล่าสุด</h3>${s.sc.slice(0,6).map(x=>`<div class="rw"><div class="time">${x[0]}</div><div style="flex:1">${x[1]}</div><span class="tag ok">${x[2]}</span></div>`).join('')||'<div class="sub">ยังไม่มีรายการ</div>'}</div></div>`}
-function side(n){const c=state.sos.filter(x=>x.st<2).length;$('#atabs').innerHTML=GRP.map(g=>`<h6>${g[0]}</h6>`+g[1].map(t=>`<button data-t="${t[0]}" class="${t[0]===n?'on':''}">${ic(t[1],18)}<span>${t[0]}</span>${t[0]==='แจ้งเหตุฉุกเฉิน'&&c?`<i class="bd">${c}</i>`:''}${t[0]==='ข้อความให้กำลังใจ'&&state.cheers.some(x=>x.ok===0&&!x.hid)?`<i class="bd">${state.cheers.filter(x=>x.ok===0&&!x.hid).length}</i>`:''}${t[0]==='ตรวจรูปแกลเลอรี'&&state.gal.some(x=>x.ok===0)?`<i class="bd">${state.gal.filter(x=>x.ok===0).length}</i>`:''}${can(t[0])||t[0]==='ภาพรวม'?'':`<i class="lk">${ic('lock',13)}</i>`}</button>`).join('')).join('')}
+function side(n){const c=state.sos.filter(x=>x.st<2).length;$('#atabs').innerHTML=GRP.map(g=>!g[1].some(t=>canView(t[0]))?'':`<h6>${g[0]}</h6>`+g[1].filter(t=>canView(t[0])).map(t=>`<button data-t="${t[0]}" class="${t[0]===n?'on':''}">${ic(t[1],18)}<span>${t[0]}</span>${t[0]==='แจ้งเหตุฉุกเฉิน'&&c?`<i class="bd">${c}</i>`:''}${t[0]==='ข้อความให้กำลังใจ'&&state.cheers.some(x=>x.ok===0&&!x.hid)?`<i class="bd">${state.cheers.filter(x=>x.ok===0&&!x.hid).length}</i>`:''}${t[0]==='ตรวจรูปแกลเลอรี'&&state.gal.some(x=>x.ok===0)?`<i class="bd">${state.gal.filter(x=>x.ok===0).length}</i>`:''}${can(t[0])||t[0]==='ภาพรวม'?'':`<i class="lk">${ic('lock',13)}</i>`}</button>`).join('')).join('')}
 function show(n){tabNow=n;const a=$('#apanes'),ro=!can(n)&&n!=='ภาพรวม';a.style.animation='none';a.offsetHeight;a.style.animation='enter .45s cubic-bezier(.2,.9,.3,1)';a.innerHTML=(ro?`<div class="chip" style="margin-bottom:14px">${ic('lock',14)}โหมดดูอย่างเดียว · บัญชีนี้แก้ไขส่วนนี้ไม่ได้</div>`:'')+pane3(n);a.classList.toggle('ro',ro);side(n);badge()}
 function buildAdmin(){$('#who').textContent=RN[state.role];$('#whoSub').textContent='รหัส '+state.sid+(state.role==='super'?' · แก้ไขได้ทุกส่วน':' · ดูได้ทุกส่วน แก้ไขได้ตามสิทธิ์');show('ภาพรวม')}
 $('#atabs').onclick=e=>{const b=e.target.closest('[data-t]');if(b)show(b.dataset.t)};
@@ -1706,24 +1706,6 @@ async function fbInit(){const c=fbCfg();if(!c){status('off');return}status('conn
 // เลขบิลแบบไม่ซ้ำข้ามเครื่อง
 function nextBill(cb){if(SYNC.on)SYNC.db.ref(SYNC.root+'/bn').transaction(v=>(v||1000)+1).then(r=>cb('B'+r.snapshot.val())).catch(()=>cb('B'+(++state.bn)+'-'+SYNC.dev));else cb('B'+(++state.bn)+(fbCfg()?'-'+SYNC.dev:''))}
 // ----- แอดมิน: เพิ่มออเดอร์ให้บัญชีผู้ใช้ (สินค้าอะไรก็ได้) -----
-function openAddOrder(){
- const dl=state.users.map(u=>`<option value="${hx(u.sid)}">${hx(u.name||'')}</option>`).join('');
- openForm('เพิ่มออเดอร์ให้ผู้ใช้',
-  `<label class="fld">รหัสนักเรียน (ต้องมีบัญชีในระบบ)<input id="oaS" list="oaL" inputmode="numeric" autocomplete="off"></label><datalist id="oaL">${dl}</datalist><div class="sub" id="oaW" style="min-height:20px;margin-bottom:6px"></div>`
-  +F('oaN','ชื่อ-นามสกุล')+F('oaP','เบอร์โทรศัพท์')
-  +F('oaD','รายการสินค้า (พิมพ์อิสระ เช่น สายคล้องบัตร ×2)')
-  +F('oaT','ยอดเงิน (บาท)','','number')
-  +`<label class="fld">วิธีชำระเงิน<select id="oaPay"><option value="cash">เงินสด</option><option value="pp">พร้อมเพย์</option><option value="other">อื่นๆ</option></select></label>`
-  +`<label class="fld">สถานะ<select id="oaSt">${OST.map((x,i)=>`<option value="${i}" ${i===1?'selected':''}>${x}</option>`).join('')}</select></label>`
-  +`<div class="fl"><label class="fld">ไซซ์เสื้อ (เฉพาะออเดอร์ที่มีเสื้อ)<select id="oaZ"><option value="">ไม่มีเสื้อ</option>${SZ.map(z=>`<option>${z}</option>`).join('')}</select></label>${F('oaQ','จำนวนเสื้อ',1,'number')}</div>`,
-  ()=>{const sid=$('#oaS').value.trim(),u=U(sid);if(!u){toast('ไม่พบรหัสนักเรียนนี้ในระบบ');return false}
-   const d=$('#oaD').value.trim();if(!d){toast('กรอกรายการสินค้าก่อน');return false}
-   const amt=Math.max(0,+$('#oaT').value||0),z=$('#oaZ').value,q=z?Math.max(1,parseInt($('#oaQ').value)||1):0,st=+$('#oaSt').value,pay=$('#oaPay').value,nm=$('#oaN').value.trim()||u.name||sid,tel=$('#oaP').value.trim(),pl={cash:'เงินสด',pp:'พร้อมเพย์',other:'อื่นๆ'}[pay];
-   snap();
-   nextBill(bill=>{state.orders.unshift([nm,d+(z?' · ไซซ์ '+z:'')+' · '+pl+' · แอดมินเพิ่มให้',amt,st,null,sid,null,tel,z?0:null,bill,false,z||null,q,pay,u.house||ourId()]);
-    if(!u.name)u.name=nm;if(!u.phone&&tel)u.phone=tel;
-    aud('เพิ่มออเดอร์ '+bill+' ให้ '+sid);show(tabNow);toast('เพิ่มออเดอร์แล้ว · '+bill)})});
- $('#oaS').oninput=()=>{const u=U($('#oaS').value.trim());$('#oaW').textContent=u?'พบบัญชี: '+(u.name||u.sid):'ยังไม่พบรหัสนี้ในระบบ';if(u){$('#oaN').value=u.name||'';$('#oaP').value=u.phone||''}}}
 document.addEventListener('click',e=>{if(e.target.closest('[data-oadd]')&&state.role&&can('รายการสั่งซื้อ'))openAddOrder()});
 // ----- แอดมิน: การ์ดตั้งค่า + สแกนกันซ้ำข้ามเครื่อง -----
 const ST_L={off:'ยังไม่ได้เชื่อมต่อ (ใช้ข้อมูลในเครื่อง)',connecting:'กำลังเชื่อมต่อ…',live:'เชื่อมต่อแล้ว — ข้อมูลซิงค์ทุกเครื่องทันที',offline:'ออฟไลน์ — รอซิงค์เมื่อกลับมาออนไลน์',error:'เชื่อมต่อไม่สำเร็จ'};
@@ -2111,7 +2093,7 @@ const applyFab=()=>{const f=$('#fab');f.hidden=!state.role;$('#fabDay').textCont
 document.addEventListener('click',e=>{const t=e.target;let b;
  if(t.closest('#fabMain')){const l=$('#fabL');l.classList.toggle('on');$('#fabMain').setAttribute('aria-expanded',l.classList.contains('on'));return}
  if(b=t.closest('[data-fab]')){const k=b.dataset.fab;if(k!=='outdoor')$('#fabL').classList.remove('on');
-  if(k==='scan'){go('admin');show('สแกน');smode=0;setTimeout(()=>{if(window.startCam)startCam()},400)}
+  if(k==='scan'){go('admin');shTab='meal';show('สแกน');smode=0;setTimeout(()=>{if(window.startCam)startCam()},400)}
   if(k==='day'){snap();state.evDay=state.evDay%3+1;applyFab();toast('วันแข่งขันปัจจุบัน: วันที่ '+state.evDay);aud('สลับวันแข่ง → วันที่ '+state.evDay)}
   if(k==='sos')$('#sos').click();if(k==='home'){go('admin');show('ภาพรวม')}}
  if(t.closest('[data-outdoor]')){setOutdoor(!document.documentElement.classList.contains('outdoor'))}
@@ -2155,18 +2137,36 @@ const unlockAudio=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioCon
 document.addEventListener('pointerdown',unlockAudio,{once:true});
 function beep(ok){try{unlockAudio();if(!AC)return;const t=AC.currentTime,tone=(f,s,d,ty,g)=>{const o=AC.createOscillator(),a=AC.createGain();o.type=ty;o.frequency.value=f;a.gain.setValueAtTime(g,t+s);a.gain.exponentialRampToValueAtTime(.0001,t+s+d);o.connect(a);a.connect(AC.destination);o.start(t+s);o.stop(t+s+d+.03)};if(ok)tone(1400,0,.18,'square',.22);else{tone(190,0,.3,'sawtooth',.3);tone(150,.34,.45,'sawtooth',.3)}}catch(e){}}
 function scanFx(r){if(!r)return;beep(!!r.ok);try{navigator.vibrate&&navigator.vibrate(r.ok?[60]:[220,90,220])}catch(e){}const f=$('#scanFx');f.className='scanfx '+(r.ok?'ok':'bad')+' on';f.innerHTML=`<div class="sfb"><div class="sfi">${r.ok?'✓':'✕'}</div><div class="sft">${hx(r.m)}</div></div>`;clearTimeout(f._t);f._t=setTimeout(()=>f.classList.remove('on'),r.ok?1400:2800)}
-const cam={stream:null,timer:0,det:null,last:'',lt:0,cv:null};
+const cam={stream:null,timer:0,det:null,last:'',lt:0,cv:null,n:0,status:''};
 const camPh=on=>{const b=$('#camBox');if(b)b.classList.toggle('live',!!on)};
-function bindCam(){const v=$('#camV');if(v&&cam.stream){if(v.srcObject!==cam.stream){v.srcObject=cam.stream;if(v.play)v.play().catch(()=>{})}camPh(true)}}
-const loadJsQR=()=>new Promise((ok,no)=>{if(window.jsQR)return ok();const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)});
-async function startCam(){unlockAudio();if(cam.stream){bindCam();return}if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return toast('เบราว์เซอร์นี้เปิดกล้องไม่ได้ (ต้องเปิดผ่าน HTTPS)');
- try{cam.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false})}catch(e){return toast('เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้อง')}
- bindCam();cam.det=null;if('BarcodeDetector' in window){try{cam.det=new BarcodeDetector({formats:['qr_code']})}catch(e){}}
- if(!cam.det)await loadJsQR().catch(()=>toast('โหลดตัวอ่าน QR ไม่สำเร็จ ตรวจอินเทอร์เน็ต หรือกรอกรหัสเอง'));loop()}
-function stopCam(){clearTimeout(cam.timer);if(cam.stream)cam.stream.getTracks().forEach(t=>t.stop());cam.stream=null;const v=$('#camV');if(v)v.srcObject=null;camPh(false)}
-async function loop(){if(!cam.stream)return;const v=$('#camV');let code=null;try{if(v&&v.readyState>=2){if(cam.det){const r=await cam.det.detect(v);if(r&&r[0])code=r[0].rawValue}else if(window.jsQR){const w=v.videoWidth,h=v.videoHeight,k=Math.min(1,640/w),c=cam.cv||(cam.cv=document.createElement('canvas'));c.width=Math.round(w*k);c.height=Math.round(h*k);const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(v,0,0,c.width,c.height);const id=x.getImageData(0,0,c.width,c.height),q=jsQR(id.data,id.width,id.height,{inversionAttempts:'dontInvert'});if(q)code=q.data}}}catch(e){}
- if(code)onCode(code);cam.timer=setTimeout(loop,code?900:180)}
-function onCode(raw){const code=String(raw).trim().replace(/^GH26:/i,''),n=Date.now();if(code===cam.last&&n-cam.lt<2500)return;cam.last=code;cam.lt=n;const ai=$('#attIn'),ab=$('[data-attgo]');if(ai&&ab){ai.value=code;ab.click();return}const inp=$('#sidIn'),b=$('[data-scan2]');if(!inp||!b)return;inp.value=code;b.click()}
+function camStat(t){cam.status=t||'';const e=$('#camStat');if(e)e.textContent=cam.status}
+function bindCam(){const v=$('#camV');if(v&&cam.stream){if(v.srcObject!==cam.stream){v.srcObject=cam.stream;if(v.play)v.play().catch(()=>{})}camPh(true);camStat(cam.status)}}
+const JSQR_SRC=['https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js','https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js','https://unpkg.com/jsqr@1.4.0/dist/jsQR.js'];
+const loadJsQR=()=>window.jsQR?Promise.resolve():(window.__jq||(window.__jq=new Promise((ok,no)=>{let i=0;const next=()=>{if(window.jsQR)return ok();if(i>=JSQR_SRC.length){window.__jq=null;return no()}const sc=document.createElement('script');sc.src=JSQR_SRC[i++];sc.onload=()=>window.jsQR?ok():next();sc.onerror=()=>{sc.remove();next()};document.head.appendChild(sc)};next()})));
+function jsqrDecode(src,w,h,maxW){const k=Math.min(1,maxW/w),c=cam.cv||(cam.cv=document.createElement('canvas'));c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(src,0,0,c.width,c.height);const id=x.getImageData(0,0,c.width,c.height),q=jsQR(id.data,id.width,id.height,{inversionAttempts:'attemptBoth'});return q?q.data:null}
+async function startCam(){unlockAudio();if(cam.stream){bindCam();return}
+ const secure=window.isSecureContext||location.protocol==='file:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+ if(!secure)return toast('ต้องเปิดเว็บผ่าน HTTPS จึงจะใช้กล้องได้');
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return toast('เบราว์เซอร์นี้เปิดกล้องไม่ได้ · ใช้ปุ่ม “ถ่ายรูป QR” หรือกรอกรหัสแทน');
+ const tries=[{video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false},{video:{facingMode:'environment'},audio:false},{video:true,audio:false}];let err=null;
+ for(const c of tries){try{cam.stream=await navigator.mediaDevices.getUserMedia(c);err=null;break}catch(e){err=e;if(e&&(e.name==='NotAllowedError'||e.name==='SecurityError'))break}}
+ if(!cam.stream)return toast(err&&err.name==='NotAllowedError'?'ไม่ได้รับอนุญาตให้ใช้กล้อง · กดอนุญาตที่ไอคอนกล้องบนแถบที่อยู่':'เปิดกล้องไม่ได้ ('+((err&&err.name)||'ไม่ทราบสาเหตุ')+') · ใช้ปุ่ม “ถ่ายรูป QR” แทนได้');
+ bindCam();cam.det=null;cam.n=0;
+ if('BarcodeDetector' in window){try{const f=BarcodeDetector.getSupportedFormats?await BarcodeDetector.getSupportedFormats():null;if(!f||f.includes('qr_code'))cam.det=new BarcodeDetector({formats:['qr_code']})}catch(e){}}
+ camStat(cam.det?'พร้อมสแกน · เล็ง QR ให้อยู่ในกรอบ':'กำลังโหลดตัวอ่าน QR…');
+ loadJsQR().then(()=>camStat('พร้อมสแกน · เล็ง QR ให้อยู่ในกรอบ'),()=>camStat(cam.det?'พร้อมสแกน · เล็ง QR ให้อยู่ในกรอบ':'โหลดตัวอ่าน QR ไม่สำเร็จ (ตรวจอินเทอร์เน็ต) · ใช้ปุ่ม “ถ่ายรูป QR” หรือกรอกรหัสแทน'));
+ loop()}
+function stopCam(){clearTimeout(cam.timer);if(cam.stream)cam.stream.getTracks().forEach(t=>t.stop());cam.stream=null;const v=$('#camV');if(v)v.srcObject=null;camPh(false);camStat('')}
+async function loop(){if(!cam.stream)return;const v=$('#camV');let code=null;
+ try{if(v&&v.readyState>=2&&v.videoWidth){
+  if(cam.det){try{const r=await cam.det.detect(v);if(r&&r[0])code=r[0].rawValue}catch(e){}}
+  if(!code&&window.jsQR){cam.n++;if(!cam.det||cam.n%3===0)code=jsqrDecode(v,v.videoWidth,v.videoHeight,800)}}}catch(e){}
+ if(code)onCode(code);cam.timer=setTimeout(loop,code?700:130)}
+async function decodeFile(f){try{const bmp=await createImageBitmap(f);let code=null;
+ if('BarcodeDetector' in window){try{const r=await new BarcodeDetector({formats:['qr_code']}).detect(bmp);if(r&&r[0])code=r[0].rawValue}catch(e){}}
+ if(!code){try{await loadJsQR();code=jsqrDecode(bmp,bmp.width,bmp.height,1400)}catch(e){}}
+ if(code)return onCode(code,true);toast('อ่าน QR จากรูปไม่ได้ ลองถ่ายใหม่ให้ใกล้และชัดขึ้น หรือกรอกรหัสเอง')}catch(e){toast('อ่านรูปไม่สำเร็จ')}}
+function onCode(raw,force){const code=String(raw).trim().replace(/^GH26:/i,''),n=Date.now();if(!force&&code===cam.last&&n-cam.lt<2500)return;cam.last=code;cam.lt=n;const ai=$('#attIn'),ab=$('[data-attgo]');if(ai&&ab){ai.value=code;ab.click();return}const inp=$('#sidIn'),b=$('[data-scan2]');if(!inp||!b)return;inp.value=code;b.click()}
 new MutationObserver(()=>{if(!cam.stream)return;if($('#camV'))bindCam();else stopCam()}).observe($('#apanes'),{childList:true});
 const prev21=$('#apanes').onclick;
 $('#apanes').onclick=e=>{const b=e.target.closest('[data-cam]');if(b){return b.dataset.cam==='on'?startCam():stopCam()}prev21(e)};
@@ -2371,8 +2371,8 @@ BADGES.push({id:'paid',e:'💚',n:'ผู้สนับสนุนคณะส
 const fmtT=t=>t?new Date(t).toLocaleString('th-TH',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'-';
 const nmOf=s=>{const u=U(s);return (u&&(u.name||u.nick))||s};
 const hn=id=>{const h=H(id||ourId());return h?h.n:'-'};
-GRP[2][1].push(['ค่าบำรุงสี','wallet'],['ส่งออกข้อมูล','list']);GRP[3][1].push(['เช็กชื่อ','users']);
-Object.assign(DESC,{'ค่าบำรุงสี':'กำหนดสถานะชำระค่าบำรุงสีของแต่ละคน · ผู้ที่ยังไม่ชำระจะรับคูปองอาหารไม่ได้','เช็กชื่อ':'เช็กชื่อนักเรียนในสีและสตาฟ ด้วยกล้องสแกน QR หรือกรอกรหัส แยกตามรอบเวลา','ส่งออกข้อมูล':'ดาวน์โหลด CSV หรือพิมพ์รายงาน แยกหมวดหรือรวมเป็นฉบับเดียว'});
+GRP[2][1].push(['ค่าบำรุงสี','wallet'],['ส่งออกข้อมูล','list']);
+Object.assign(DESC,{'ค่าบำรุงสี':'กำหนดสถานะชำระค่าบำรุงสีของแต่ละคน · ผู้ที่ยังไม่ชำระจะรับคูปองอาหารไม่ได้','เช็กชื่อ':'เช็กชื่อนักเรียนในสีและสตาฟ (อยู่ในหน้า “สแกน” แท็บเช็กชื่อ) ด้วยกล้องสแกน QR หรือกรอกรหัส แยกตามรอบเวลา','สินค้า':'เพิ่ม/แก้ไขสินค้า ราคา และจำนวนคงเหลือ · ใช้เลือกตอนเพิ่มออเดอร์ (เฉพาะแอดมินหลัก)','สแกน':'สแกนคูปองอาหาร จ่ายเสื้อ เช็กชื่อ ไว้ในหน้าเดียว · แอดมินหลักแก้ไข/ยกเลิกข้อมูลที่สแกนแล้วได้','ส่งออกข้อมูล':'ดาวน์โหลด CSV หรือพิมพ์รายงาน แยกหมวดหรือรวมเป็นฉบับเดียว'});
 EDITS.fin.push('ค่าบำรุงสี','ส่งออกข้อมูล','เช็กชื่อ');EDITS.sub.push('เช็กชื่อ');
 
 // ----- ค่าบำรุงสี (แอดมิน/ฝ่ายการเงิน) -----
@@ -2380,7 +2380,7 @@ let pfH='',pfS='';const PSEL=new Set();
 const updPay=()=>{const n=$('#payN');if(n)n.textContent='เลือก '+PSEL.size+' รายการ'};
 function payAdmin(){const inH=u=>!pfH||u.house===pfH,all=state.users.filter(inH),np=all.filter(paidOf).length,
  list=state.users.map((u,i)=>[u,i]).filter(([u])=>inH(u)&&(!pfS||(pfS==='paid'?paidOf(u):!paidOf(u))));
- return ph('ค่าบำรุงสี',srch)
+ return ph('ค่าบำรุงสี',srch)+payQuickCard()
  +`<div class="act" style="margin-bottom:12px"><span class="tag ok">ชำระแล้ว ${np}</span><span class="tag ${all.length-np?'bad':''}">ยังไม่ชำระ ${all.length-np}</span><span class="tag">ทั้งหมด ${all.length}</span></div>`
  +`<div class="act" style="margin-bottom:12px"><label class="fld" style="min-width:170px">คณะสี<select data-pfh>${hopts(pfH,1)}</select></label><label class="fld" style="min-width:170px">สถานะ<select data-pfs><option value="">ทั้งหมด</option><option value="paid" ${pfS==='paid'?'selected':''}>ชำระแล้ว</option><option value="unpaid" ${pfS==='unpaid'?'selected':''}>ยังไม่ชำระ</option></select></label><span class="sub">แสดง ${list.length} คน</span></div>`
  +`<div class="bulkbar has"><label class="swl"><input type="checkbox" class="rowck" id="payAll"> เลือกทั้งหมดที่แสดง</label><span class="sub" id="payN">เลือก ${PSEL.size} รายการ</span><span class="sp"></span><button class="btn pri sm" data-pbulk="paid">เปลี่ยนสถานะเป็นชำระแล้วทั้งหมดที่เลือก</button><button class="btn sm" data-pbulk="unpaid">เปลี่ยนเป็นยังไม่ชำระ</button></div>`
@@ -2398,15 +2398,14 @@ const attKey=(rd,cat,sid)=>rd+'|'+cat+'|'+sid;
 const attGet=(rd,cat,sid)=>{const e=state.att[attKey(rd,cat,sid)];return e&&e.st?e:null};
 const staffSet=()=>{const S=new Set();state.crewX.forEach(c=>{if(c&&c.sid&&(c.cat==='staff'||c.cat==='teacher'))S.add(c.sid)});state.users.forEach(u=>{if(u.role)S.add(u.sid)});return S};
 const attRoster=cat=>{const S=staffSet();return state.users.filter(u=>(u.house||ourId())===ourId()&&(cat==='staff'?S.has(u.sid):!S.has(u.sid)))};
-function attAdmin(){const rd=attRd(),cat=attCat,R=attRoster(cat),rows=R.map(u=>({u,e:attGet(rd,cat,u.sid)})),cnt={p:0,l:0,v:0,a:0,n:0};rows.forEach(r=>cnt[r.e?r.e.st:'n']++);
+function attBody(){const rd=attRd(),cat=attCat,R=attRoster(cat),rows=R.map(u=>({u,e:attGet(rd,cat,u.sid)})),cnt={p:0,l:0,v:0,a:0,n:0};rows.forEach(r=>cnt[r.e?r.e.st:'n']++);
  const sel=(k,opts,cur)=>`<select data-attf="${k}">${opts.map(([v,t])=>`<option value="${v}" ${String(v)===String(cur)?'selected':''}>${t}</option>`).join('')}</select>`,
  shown=rows.filter(r=>!attFlt||(attFlt==='n'?!r.e:r.e&&r.e.st===attFlt)),dayNow=attDay||state.evDay||1;
- return ph('เช็กชื่อ',srch)
- +`<div class="grid g2"><div class="card"><div class="fl"><label class="fld">หมวด${sel('cat',[['student','นักเรียนในสี'],['staff','สตาฟประจำจุด/ฝ่าย']],cat)}</label><label class="fld">วัน${sel('day',[[1,'วันที่ 1'],[2,'วันที่ 2'],[3,'วันที่ 3']],dayNow)}</label><label class="fld">ช่วงเวลา${sel('part',[['am','เช้า'],['pm','บ่าย']],attPart)}</label><label class="fld">สถานะเมื่อสแกน${sel('st',[['p','มา'],['l','สาย']],attSt)}</label></div>`
- +`<div class="scan camwrap" id="camBox" style="margin-top:12px"><video id="camV" playsinline muted autoplay></video><div class="camph">${ic('qr',56)}<div style="margin-top:8px">กด “เปิดกล้อง” เพื่อสแกน QR</div></div></div><div class="act" style="margin-top:10px"><button class="btn pri sm keep" data-cam="on">เปิดกล้อง</button><button class="btn sm keep" data-cam="off">ปิดกล้อง</button></div>`
+ return `<div class="grid g2" style="margin-top:14px"><div class="card"><div class="fl"><label class="fld">หมวด${sel('cat',[['student','นักเรียนในสี'],['staff','สตาฟประจำจุด/ฝ่าย']],cat)}</label><label class="fld">วัน${sel('day',[[1,'วันที่ 1'],[2,'วันที่ 2'],[3,'วันที่ 3']],dayNow)}</label><label class="fld">ช่วงเวลา${sel('part',[['am','เช้า'],['pm','บ่าย']],attPart)}</label><label class="fld">สถานะเมื่อสแกน${sel('st',[['p','มา'],['l','สาย']],attSt)}</label></div>`
+ +`<div style="margin-top:12px">${camHtml()}</div>`
  +`<label class="fld" style="margin-top:12px">หรือกรอกรหัสนักเรียน<input id="attIn" inputmode="numeric" autocomplete="off" placeholder="64012"></label><button class="btn pri" style="margin-top:12px" data-attgo>เช็กชื่อ</button>${attLast?`<div class="res ${attLast.ok?'ok':'bad'}">${hx(attLast.m)}</div>`:''}</div>`
  +`<div class="card"><h3>สรุป · ${attLbl(rd)} · ${cat==='staff'?'สตาฟ':'นักเรียนในสี'}</h3><div style="font-size:34px;font-weight:800;margin:8px 0">${cnt.p+cnt.l}/${R.length}<span class="sub" style="font-size:14px;font-weight:500"> คนที่มาแล้ว (มา + สาย)</span></div><div class="act"><span class="tag ok">มา ${cnt.p}</span><span class="tag wait">สาย ${cnt.l}</span><span class="tag">ลา ${cnt.v}</span><span class="tag bad">ขาด ${cnt.a}</span><span class="tag">ยังไม่เช็ก ${cnt.n}</span></div><div class="sub" style="margin-top:10px">บันทึกเวลา ผู้เช็กชื่อ และรอบเวลาให้อัตโนมัติ · สแกนซ้ำในรอบเดิมจะแจ้งเตือน</div></div></div>`
- +`<div class="card"><div class="act" style="justify-content:space-between;margin-bottom:6px"><h3>รายชื่อ (${shown.length}/${R.length})</h3><label class="fld" style="min-width:160px">แสดง${sel('flt',[['','ทั้งหมด'],['n','ยังไม่เช็ก'],['p','มา'],['l','สาย'],['v','ลา'],['a','ขาด']],attFlt)}</label></div>${shown.map(({u,e})=>`<div class="urow" data-s="${esc(u.sid+' '+(u.name||'')+' '+(u.grade||''))}"><div class="ui"><b>${hx(u.name||'(ยังไม่มีชื่อ)')}</b><div class="sub">${hx(u.sid)} · ${hx(u.grade||'ไม่ระบุชั้น')}${e?' · '+hx(fmtT(e.at))+' · โดย '+hx(e.by||'-'):''}</div></div><span class="tag ${e?(e.st==='p'?'ok':e.st==='a'?'bad':e.st==='l'?'wait':''):'wait'}">${e?ASTN[e.st]:'ยังไม่เช็ก'}</span><select data-attst="${hx(u.sid)}" aria-label="เปลี่ยนสถานะ"><option value="">— ยังไม่เช็ก —</option>${AST.map(([v,tx])=>`<option value="${v}" ${e&&e.st===v?'selected':''}>${tx}</option>`).join('')}</select></div>`).join('')||'<div class="sub">ไม่มีรายชื่อในหมวดนี้</div>'}</div>`}
+ +`<div class="card"><div class="act" style="justify-content:space-between;margin-bottom:6px"><h3>รายชื่อ (${shown.length}/${R.length})</h3>${srch}<label class="fld" style="min-width:160px">แสดง${sel('flt',[['','ทั้งหมด'],['n','ยังไม่เช็ก'],['p','มา'],['l','สาย'],['v','ลา'],['a','ขาด']],attFlt)}</label></div>${shown.map(({u,e})=>`<div class="urow" data-s="${esc(u.sid+' '+(u.name||'')+' '+(u.grade||''))}"><div class="ui"><b>${hx(u.name||'(ยังไม่มีชื่อ)')}</b><div class="sub">${hx(u.sid)} · ${hx(u.grade||'ไม่ระบุชั้น')}${e?' · '+hx(fmtT(e.at))+' · โดย '+hx(e.by||'-'):''}</div></div><span class="tag ${e?(e.st==='p'?'ok':e.st==='a'?'bad':e.st==='l'?'wait':''):'wait'}">${e?ASTN[e.st]:'ยังไม่เช็ก'}</span><select data-attst="${hx(u.sid)}" aria-label="เปลี่ยนสถานะ"><option value="">— ยังไม่เช็ก —</option>${AST.map(([v,tx])=>`<option value="${v}" ${e&&e.st===v?'selected':''}>${tx}</option>`).join('')}</select></div>`).join('')||'<div class="sub">ไม่มีรายชื่อในหมวดนี้</div>'}</div>`}
 function attGo(){const inp=$('#attIn'),v=(inp.value||'').trim(),rd=attRd(),cat=attCat;let r;
  if(!v)r={ok:0,m:'กรุณากรอกรหัส'};else if(!/^\d{4,6}$/.test(v))r={ok:0,m:'รหัสนักเรียนไม่ถูกต้อง'};
  else{const u=U(v),nm=nmOf(v);
@@ -2470,9 +2469,105 @@ document.addEventListener('click',e=>{const t=e.target;let b;if(!state.role)retu
  if(t.closest('[data-attgo]')){if(!can('เช็กชื่อ'))return;return attGo()}
  if(t.closest('[data-exgo]')){if(!can('ส่งออกข้อมูล'))return;return runExport()}
 });
+/* ===== v27: สิทธิ์การเข้าถึงเมนูแอดมิน (แอดมินหลักกำหนดเอง) ===== */
+KEYS.push('acl');AK.push('acl');ALLK.push('acl');SNAPK.push('acl');
+try{const o=JSON.parse(localStorage.getItem(LSK)||'null');if(o&&o.s&&o.s.acl&&typeof o.s.acl==='object'&&!Array.isArray(o.s.acl))state.acl=o.s.acl}catch(e){}
+if(!state.acl||typeof state.acl!=='object'||Array.isArray(state.acl))state.acl={};
+const NOACL=new Set(['ผู้ใช้งาน','ตั้งค่าระบบ','ตราสัญลักษณ์','แก้ไขเนื้อหาเว็บ','สิทธิ์การเข้าถึงเมนู','สินค้า']);
+const HIDDEN_PERMS=[['เช็กชื่อ','users']];
+const aclDefault=tab=>({r:['fin','sub'].filter(r=>tab==='แจ้งเหตุฉุกเฉิน'||tab==='บันทึกการทำงาน'||EDITS[r].includes(tab)),u:[]});
+function aclOk(tab){if(state.role==='super')return true;if(!state.role||NOACL.has(tab))return false;const a=(state.acl||{})[tab]||aclDefault(tab);return (a.r||[]).includes(state.role)||(a.u||[]).includes(state.sid)}
+const canView=n=>n==='ภาพรวม'||(n==='สแกน'?(aclOk('สแกน')||aclOk('เช็กชื่อ')):aclOk(n));
+GRP.find(g=>g[0]==='ระบบ')[1].push(['สิทธิ์การเข้าถึงเมนู','shield']);
+DESC['สิทธิ์การเข้าถึงเมนู']='แอดมินหลักกำหนดว่าแต่ละเมนูในแผงแอดมินให้ใครเข้าถึงได้ · เมนูที่เข้าไม่ได้จะไม่แสดง';
+function aclAdmin(){const admins=state.users.filter(u=>u.role&&u.role!=='super');
+ const rowFor=t=>{const tab=t[0];if(tab==='ภาพรวม')return '';
+  if(NOACL.has(tab))return `<div class="rw" data-s="${esc(tab)}"><div style="flex:1 1 200px"><b>${hx(tab)}</b><div class="sub">${hx(DESC[tab]||'')}</div></div><span class="tag">เฉพาะแอดมินหลัก</span></div>`;
+  const a=state.acl[tab]||aclDefault(tab),custom=!!state.acl[tab],avail=admins.filter(u=>!a.u.includes(u.sid));
+  return `<div class="rw" data-s="${esc(tab)}" style="align-items:flex-start;gap:12px"><div style="flex:1 1 200px;min-width:0"><b>${hx(tab)}</b>${custom?' <span class="tag wait">กำหนดเอง</span>':''}<div class="sub">${hx(DESC[tab]||'')}</div></div><div style="flex:2 1 320px"><div class="act">${['fin','sub'].map(r=>`<label class="swl"><input type="checkbox" class="sw" data-aclr="${esc(tab)}|${r}" ${a.r.includes(r)?'checked':''}>${hx(RN[r]||r)}</label>`).join('')}</div><div class="act" style="margin-top:8px">${a.u.map(sd=>{const u=U(sd);return `<span class="tag ok">${hx((u?(u.name||sd):sd)+' · '+sd)} <button class="btn sm" style="padding:0 7px" data-aclu="${esc(tab)}|${hx(sd)}" aria-label="เอาออก">✕</button></span>`}).join('')}<select data-acladd="${esc(tab)}" aria-label="เพิ่มบุคคล"><option value="">+ เพิ่มบุคคล…</option>${avail.map(u=>`<option value="${hx(u.sid)}">${hx((u.name||u.sid)+' · '+u.sid+' ('+(RN[u.role]||u.role)+')')}</option>`).join('')}</select>${custom?`<button class="btn sm" data-aclreset="${esc(tab)}">กลับค่าเริ่มต้น</button>`:''}</div></div></div>`};
+ return ph('สิทธิ์การเข้าถึงเมนู',srch+'<button class="btn sm" data-aclresetall>รีเซ็ตทั้งหมด</button>')
+ +`<div class="card"><div class="sub">แอดมินหลักเข้าได้ทุกเมนูเสมอ · ติ๊กระดับแอดมินที่ให้เข้าได้ และเพิ่มเป็นรายบุคคลได้ (เฉพาะบัญชีที่มีสิทธิ์แอดมินระดับการเงิน/สนาม) · เมนูที่ไม่มีสิทธิ์จะถูกซ่อนจากแถบเมนูของผู้นั้น</div></div>`
+ +GRP.map(g=>`<div class="card"><h3>${hx(g[0])}</h3>${g[1].concat(g[0]==='ภาคสนาม'?HIDDEN_PERMS:[]).map(rowFor).join('')}</div>`).join('')}
+document.addEventListener('change',e=>{const t=e.target,d=t.dataset||{};if(state.role!=='super')return;
+ if(d.aclr){const[tab,r]=d.aclr.split('|');snap();const a=state.acl[tab]=state.acl[tab]||aclDefault(tab);a.r=t.checked?[...new Set([...a.r,r])]:a.r.filter(x=>x!==r);aud('สิทธิ์เมนู '+tab+': '+(t.checked?'อนุญาต ':'ปิด ')+(RN[r]||r));show(tabNow);return toast('บันทึกสิทธิ์เมนูแล้ว')}
+ if(d.acladd&&t.value){const tab=d.acladd,a=state.acl[tab]=state.acl[tab]||aclDefault(tab);if(!a.u.includes(t.value)){snap();a.u.push(t.value);aud('สิทธิ์เมนู '+tab+': เพิ่มบุคคล '+t.value)}show(tabNow);return toast('เพิ่มบุคคลแล้ว')}
+});
+document.addEventListener('click',e=>{const t=e.target;let b;if(state.role!=='super')return;
+ if(b=t.closest('[data-aclu]')){const[tab,sd]=b.dataset.aclu.split('|'),a=state.acl[tab];if(!a)return;snap();a.u=a.u.filter(x=>x!==sd);aud('สิทธิ์เมนู '+tab+': เอาบุคคลออก '+sd);show(tabNow);return toast('เอาออกแล้ว')}
+ if(b=t.closest('[data-aclreset]')){const tab=b.dataset.aclreset;if(!state.acl[tab])return;snap();delete state.acl[tab];aud('สิทธิ์เมนู '+tab+': กลับค่าเริ่มต้น');show(tabNow);return toast('กลับค่าเริ่มต้นแล้ว')}
+ if(t.closest('[data-aclresetall]')){if(!Object.keys(state.acl).length)return toast('ใช้ค่าเริ่มต้นอยู่แล้ว');if(!confirm('รีเซ็ตสิทธิ์ทุกเมนูกลับเป็นค่าเริ่มต้น?'))return;snap();state.acl={};aud('สิทธิ์เมนู: รีเซ็ตทั้งหมด');show(tabNow);return toast('รีเซ็ตแล้ว')}
+});
+/* ===== v28: หน้ารวมการสแกน · ประวัติ/แก้ไข · บันทึกค่าบำรุงสีด่วน · สินค้า · เพิ่มออเดอร์ ===== */
+let shTab='meal',mealCur=MEALS[0][0],payLast=null;
+const camHtml=()=>`<div class="scan camwrap" id="camBox"><video id="camV" playsinline muted autoplay></video><div class="camph">${ic('qr',56)}<div style="margin-top:8px">กด “เปิดกล้อง” เพื่อสแกน QR</div></div></div><div class="act" style="margin-top:10px"><button class="btn pri sm keep" data-cam="on">เปิดกล้อง</button><button class="btn sm keep" data-cam="off">ปิดกล้อง</button><label class="btn sm keep" style="cursor:pointer">ถ่ายรูป QR<input type="file" accept="image/*" capture="environment" data-camfile hidden></label></div><div class="sub" id="camStat" style="margin-top:6px;min-height:20px">${hx(cam.status||'')}</div>`;
+const mealName=ml=>(MEALS.find(x=>x[0]===ml)||[0,ml])[1];
+function hubTabs(){const t=[];if(aclOk('สแกน'))t.push(['meal','คูปองอาหาร'],['shirt','จ่ายเสื้อ']);if(aclOk('เช็กชื่อ'))t.push(['att','เช็กชื่อ']);if(state.role==='super')t.push(['hist','ประวัติ / แก้ไขการสแกน']);return t}
+function scanHub(){const tabs=hubTabs();if(!tabs.some(x=>x[0]===shTab))shTab=tabs[0]?tabs[0][0]:'meal';smode=shTab==='shirt'?1:0;
+ const head=ph('สแกน')+`<div class="seg" style="max-width:660px">${tabs.map(([k,t])=>`<button class="${k===shTab?'on':''}" data-sh="${k}">${t}</button>`).join('')}</div>`;
+ return head+(shTab==='hist'?scanHist():shTab==='att'?attBody():mealBody())}
+function mealBody(){const s=state,L=s.last,on=!(s.off||!navigator.onLine),sm=smode;
+ return `<div class="grid g2" style="margin-top:14px"><div class="card">${sm?'':`<label class="fld" style="margin-bottom:12px">มื้ออาหาร<select id="mealSel" data-mealsel>${MEALS.map(x=>`<option value="${x[0]}" ${x[0]===mealCur?'selected':''}>${x[1]}</option>`).join('')}</select></label>`}${camHtml()}<label class="fld" style="margin-top:12px">${sm?'เลขบิล หรือ รหัสนักเรียน':'รหัสนักเรียน'}<input id="sidIn" placeholder="${sm?'B1001':'64012'}" autocomplete="off" inputmode="${sm?'text':'numeric'}"></label><button class="btn pri" style="margin-top:12px" data-scan2>ตรวจสอบและยืนยัน</button>${L?`<div class="res ${L.ok?'ok':'bad'}">${hx(L.m)}</div>`:''}</div><div class="card"><span class="tag ${on?'ok':'wait'}">${on?'ออนไลน์':'ออฟไลน์ · เก็บในเครื่อง'}</span> ${s.queue?`<span class="tag wait">${s.queue} รอซิงค์</span> <button class="btn sm" data-sync>ซิงค์ข้อมูล</button>`:''}<div class="two" style="margin-top:14px"><div><div class="price" style="font-size:32px">${s.scans}</div><div class="sub">คูปองที่สแกนแล้ว</div></div><div><div class="price" style="font-size:32px">${s.shirts}</div><div class="sub">เสื้อที่จ่ายแล้ว</div></div></div><h3 style="margin-top:16px">สแกนล่าสุด</h3>${s.sc.slice(0,6).map(x=>`<div class="rw"><div class="time">${hx(x[0])}</div><div style="flex:1">${hx(x[1])}</div><span class="tag ok">${hx(x[2])}</span></div>`).join('')||'<div class="sub">ยังไม่มีรายการ</div>'}</div></div>`}
+// ----- ประวัติ / แก้ไขการสแกน (แอดมินหลัก) -----
+function scanHist(){const meals=[];for(const sid in state.meals)for(const ml in state.meals[sid])meals.push([sid,ml,state.meals[sid][ml]]);
+ const shirts=state.orders.filter(o=>o[8]===1),atts=Object.entries(state.att).filter(([k,e])=>e&&e.st).sort((a,b)=>b[1].at-a[1].at),
+ sec=(t,n,body)=>`<div class="card"><h3>${t} (${n})</h3>${body||'<div class="sub">ยังไม่มีรายการ</div>'}</div>`;
+ return `<div class="sub" style="margin:12px 0 10px">เฉพาะแอดมินหลัก · แก้ไขเวลา/สถานะ หรือยกเลิกข้อมูลที่สแกนไปแล้ว · กด “ย้อนกลับ” เพื่อกู้คืนได้</div>${srch}`
+ +sec('คูปองอาหารที่ใช้แล้ว',meals.length,meals.slice(0,500).map(([sid,ml,t])=>`<div class="rw" data-s="${esc(sid+' '+nmOf(sid)+' '+mealName(ml))}"><div style="flex:1 1 180px;min-width:0"><b>${hx(nmOf(sid))}</b><div class="sub">${hx(sid)} · ${hx(mealName(ml))}</div></div><input style="width:110px;flex:none" data-hmt="${esc(sid)}|${esc(ml)}" value="${esc(t)}" aria-label="เวลาที่ใช้สิทธิ์"><button class="btn sm" data-hmdel="${esc(sid)}|${esc(ml)}">ยกเลิก</button></div>`).join('')+(meals.length>500?'<div class="sub">แสดง 500 รายการแรก</div>':''))
+ +sec('เสื้อที่จ่ายแล้ว',shirts.length,shirts.map(o=>`<div class="rw" data-s="${esc((o[9]||'')+' '+o[0]+' '+(o[5]||''))}"><div style="flex:1 1 180px;min-width:0"><b>${hx(o[0])}</b><div class="sub">${hx(o[9]||'')} · รหัส ${hx(o[5]||'-')} · ไซซ์ ${hx(o[11]||'-')} × ${o[12]||1}</div></div><button class="btn sm" data-hsun="${esc(o[9]||'')}">ยกเลิกการรับเสื้อ</button></div>`).join(''))
+ +sec('เช็กชื่อ',atts.length,atts.slice(0,500).map(([k,e])=>{const[rd,cat,sid]=k.split('|');return `<div class="rw" data-s="${esc(sid+' '+nmOf(sid)+' '+attLbl(rd))}"><div style="flex:1 1 180px;min-width:0"><b>${hx(nmOf(sid))}</b><div class="sub">${hx(sid)} · ${hx(attLbl(rd))} · ${cat==='staff'?'สตาฟ':'นักเรียนในสี'} · ${hx(fmtT(e.at))} · โดย ${hx(e.by||'-')}</div></div><select data-hatst="${esc(k)}" aria-label="สถานะ">${AST.map(([v,tx])=>`<option value="${v}" ${e.st===v?'selected':''}>${tx}</option>`).join('')}</select><button class="btn sm" data-hatdel="${esc(k)}">ยกเลิก</button></div>`}).join(''))}
+// ----- บันทึกค่าบำรุงสีด่วน -----
+const payQuickCard=()=>`<div class="card"><h3>บันทึกด่วนด้วยรหัสนักเรียน</h3><div class="fl" style="grid-template-columns:1fr auto auto;align-items:end"><label class="fld">รหัสนักเรียน<input id="payIn" inputmode="numeric" autocomplete="off" placeholder="พิมพ์รหัส แล้วกด Enter = ชำระแล้ว"></label><button class="btn pri" data-payq="1">ชำระแล้ว</button><button class="btn" data-payq="0">ยังไม่ชำระ</button></div><div id="payPrev" style="margin-top:8px;min-height:24px">${payLast?`<span class="tag ${payLast.ok?'ok':'bad'}">${hx(payLast.m)}</span>`:''}</div></div>`;
+function payQuick(setTo){const inp=$('#payIn'),v=((inp&&inp.value)||'').trim();let r;
+ if(!v)r={ok:0,m:'กรอกรหัสนักเรียนก่อน'};else{const u=U(v);if(!u)r={ok:0,m:'ไม่พบรหัส '+v+' ในระบบ'};else{snap();setPaid(u,setTo);aud((setTo?'ชำระค่าบำรุงสี ':'ยกเลิกสถานะชำระค่าบำรุงสี ')+v);r={ok:1,m:(u.name||v)+' · '+(setTo?'ชำระแล้ว':'ยังไม่ชำระ')}}}
+ payLast=r;show(tabNow);scanFx(r);toast(r.m);setTimeout(()=>{const i=$('#payIn');if(i)i.focus()},60)}
+// ----- สินค้า (แอดมินหลัก) -----
+const itSized=x=>x[7]===undefined?/เสื้อ/.test(x[0]):!!x[7];
+function itemsAdmin(){return ph('สินค้า',srch+addB('it','เพิ่มสินค้า'))+`<div class="sub" style="margin-bottom:12px">สินค้าที่ “เปิดขาย” จะให้เลือกได้ตอนกด “+ เพิ่มออเดอร์” ในแท็บรายการสั่งซื้อ · ติ๊ก “มีไซซ์” สำหรับเสื้อหรือสินค้าที่ต้องเลือกไซซ์</div><div class="pcs">${ITEMS.map((x,i)=>`<div class="card" data-s="${esc(x[0])}"><label class="pimg" style="background-image:${x[4]?`url('${x[4]}')`:'none'};background-color:#0a8f68;${x[4]?'background-size:contain;background-repeat:no-repeat;background-position:center':'background-image:'+GRAD}">${x[4]?'':ic(x[3],40)}<span>เปลี่ยนรูป</span><input type="file" accept="image/*" data-img="it,${i}"></label><div class="pf"><label class="fld">ชื่อสินค้า<input data-e="it,${i},0" value="${esc(x[0])}"></label><div class="two"><label class="fld">ราคา (บาท)<input type="number" min="0" data-e="it,${i},1" value="${x[1]}"></label><label class="fld">คงเหลือ (ชิ้น)<input type="number" min="0" data-e="it,${i},5" value="${x[5]==null?0:x[5]}"></label></div><div class="act"><label class="swl"><input type="checkbox" class="sw" data-e="it,${i},6" ${x[6]!==false?'checked':''}>เปิดขาย</label><label class="swl"><input type="checkbox" class="sw" data-e="it,${i},7" ${itSized(x)?'checked':''}>มีไซซ์</label><span class="sp"></span>${x[4]?`<button class="btn sm" data-rmimg="it,${i}">ลบรูป</button>`:''}<button class="btn sm" data-del="it,${i}">ลบ</button></div></div></div>`).join('')||'<div class="sub">ยังไม่มีสินค้า · กด “+ เพิ่มสินค้า”</div>'}</div>`}
+// ----- เพิ่มออเดอร์: กรอกรหัสนักเรียน + เลือกสินค้า -----
+const oaTotal=()=>{let t=0;ITEMS.forEach((x,i)=>{const e=$('#oq'+i);if(e)t+=x[1]*Math.max(0,parseInt(e.value)||0)});const od=$('#oaD'),oc=$('#oaC');if(od&&od.value.trim()&&oc)t+=Math.max(0,+oc.value||0);const el=$('#oaTot');if(el)el.textContent=t;return t};
+function openAddOrder(){const act=ITEMS.map((x,i)=>[x,i]).filter(([x])=>x[6]!==false),dl=state.users.map(u=>`<option value="${hx(u.sid)}">${hx(u.name||'')}</option>`).join('');
+ const rows=act.map(([x,i])=>`<div class="rw" style="gap:10px;align-items:center;flex-wrap:nowrap"><div style="flex:1 1 100px;min-width:0"><b>${hx(x[0])}</b><div class="sub">${x[1]} บาท${x[5]!=null?' · เหลือ '+x[5]:''}</div></div>${itSized(x)?`<select id="ozs${i}" aria-label="ไซซ์" style="width:84px;flex:none">${SZ.map(z=>`<option>${z}</option>`).join('')}</select>`:''}<input type="number" min="0" value="0" id="oq${i}" style="width:76px;flex:none" aria-label="จำนวน"></div>`).join('')||'<div class="sub">ยังไม่มีสินค้า · เพิ่มได้ที่แท็บ “สินค้า” (แอดมินหลัก)</div>';
+ openForm('เพิ่มออเดอร์ให้ผู้ใช้',
+  `<label class="fld">รหัสนักเรียน<input id="oaS" list="oaL" inputmode="numeric" autocomplete="off" placeholder="พิมพ์รหัส ระบบดึงชื่อ/เบอร์ให้เอง"></label><datalist id="oaL">${dl}</datalist><div class="sub" id="oaW" style="min-height:20px;margin-bottom:8px"></div>`
+  +`<div class="sub" style="margin-bottom:4px">เลือกสินค้า (ใส่จำนวน)</div>${rows}`
+  +`<details style="margin-top:8px"><summary class="sub" style="cursor:pointer">+ รายการอื่นๆ (ระบุเอง)</summary><div class="two">${F('oaD','ชื่อรายการ')}${F('oaC','ราคา (บาท)','','number')}</div></details>`
+  +`<div class="two" style="margin-top:10px"><label class="fld">วิธีชำระเงิน<select id="oaPay"><option value="cash">เงินสด</option><option value="pp">พร้อมเพย์</option><option value="other">อื่นๆ</option></select></label><label class="fld">สถานะ<select id="oaSt">${OST.map((x,i)=>`<option value="${i}" ${i===1?'selected':''}>${x}</option>`).join('')}</select></label></div>`
+  +`<div class="price" style="margin-top:12px">ยอดรวม <b id="oaTot">0</b> บาท</div>`,
+  ()=>{const sid=$('#oaS').value.trim(),u=U(sid);if(!u){toast('ไม่พบรหัสนักเรียนนี้ในระบบ');return false}
+   const lines=[],sel=[],sizes=new Set();let shirtQ=0,size=null;
+   ITEMS.forEach((x,i)=>{const e=$('#oq'+i),q=e?Math.max(0,parseInt(e.value)||0):0;if(!q)return;const zs=$('#ozs'+i),z=zs?zs.value:'';lines.push(x[0]+(z?' ('+z+')':'')+' ×'+q);sel.push([x[0],q]);if(z){shirtQ+=q;sizes.add(z);size=size||z}});
+   if(sizes.size>1){toast('สินค้าที่มีไซซ์ ใส่ได้ไซซ์เดียวต่อออเดอร์ · แยกเป็นหลายออเดอร์');return false}
+   const od=($('#oaD').value||'').trim();if(od)lines.push(od);
+   if(!lines.length){toast('เลือกสินค้าหรือกรอกรายการอย่างน้อย 1 อย่าง');return false}
+   const total=oaTotal(),st=+$('#oaSt').value,pay=$('#oaPay').value,pl={cash:'เงินสด',pp:'พร้อมเพย์',other:'อื่นๆ'}[pay];snap();
+   nextBill(bill=>{const o=[u.name||sid,lines.join(' + ')+' · '+pl+' · แอดมินเพิ่มให้',total,st,null,sid,sel.length?sel:null,u.phone||'',shirtQ?0:null,bill,false,size,shirtQ,pay,u.house||ourId()];state.orders.unshift(o);stockFor(o,st);aud('เพิ่มออเดอร์ '+bill+' ให้ '+sid);show(tabNow);toast('เพิ่มออเดอร์แล้ว · '+bill+' · '+total+' บาท');scheduleSync()})});
+ $('#oaS').oninput=()=>{const u=U($('#oaS').value.trim());$('#oaW').textContent=u?'พบบัญชี: '+(u.name||u.sid)+(u.phone?' · '+u.phone:''):($('#oaS').value.trim()?'ยังไม่พบรหัสนี้ในระบบ':'')}}
+// ----- ตัวจัดการอีเวนต์ v28 -----
+document.addEventListener('input',e=>{const t=e.target;if(t.id==='payIn'){const u=U(t.value.trim()),el=$('#payPrev');if(el)el.innerHTML=u?`${hx(u.name||u.sid)} · ${hx(u.grade||'')} ${payChip(u)}`:(t.value.trim()?'<span class="sub">ไม่พบรหัสนี้</span>':'')}
+ if(t.closest&&t.closest('#edm')&&(/^oq\d+$/.test(t.id)||t.id==='oaD'||t.id==='oaC'))oaTotal()});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.target.id;
+ if(id==='payIn'&&state.role&&can('ค่าบำรุงสี')){e.preventDefault();payQuick(!e.shiftKey)}
+ else if(id==='sidIn'&&$('[data-scan2]')){e.preventDefault();$('[data-scan2]').click()}});
+document.addEventListener('change',e=>{const t=e.target,d=t.dataset||{};
+ if(d.camfile!==undefined){const f=t.files&&t.files[0];t.value='';if(f)decodeFile(f);return}
+ if(d.mealsel!==undefined){mealCur=t.value;return}
+ if(!state.role)return;
+ if(d.hmt!==undefined&&state.role==='super'){const[sid,ml]=d.hmt.split('|'),m=state.meals[sid];if(!m||!m[ml])return;const v=t.value.trim();if(!v){t.value=m[ml];return}snap();m[ml]=v;aud('แก้เวลาคูปอง '+sid+' '+mealName(ml)+' → '+v);return toast('แก้ไขเวลาแล้ว')}
+ if(d.hatst!==undefined&&state.role==='super'){const e0=state.att[d.hatst];if(!e0)return;snap();state.att[d.hatst]={st:t.value,at:Date.now(),by:state.sid||''};aud('แก้สถานะเช็กชื่อ '+d.hatst+' → '+(ASTN[t.value]||t.value));show(tabNow);return toast('แก้ไขสถานะแล้ว')}
+});
+document.addEventListener('click',e=>{const t=e.target;let b;
+ if(b=t.closest('[data-sh]')){if(!state.role)return;shTab=b.dataset.sh;attLast=null;return show(tabNow)}
+ if(t.closest('[data-scan2]'))setTimeout(()=>{const i=$('#sidIn');if(i)i.focus()},120);
+ if(b=t.closest('[data-payq]')){if(!state.role||!can('ค่าบำรุงสี'))return;return payQuick(b.dataset.payq==='1')}
+ if(state.role!=='super')return;
+ if(b=t.closest('[data-hmdel]')){const[sid,ml]=b.dataset.hmdel.split('|'),m=state.meals[sid];if(!m||!m[ml])return;snap();delete m[ml];if(!Object.keys(m).length)delete state.meals[sid];state.scans=Math.max(0,state.scans-1);const i=state.sc.findIndex(x=>x[1]===sid&&x[2]===mealName(ml));if(i>=0)state.sc.splice(i,1);aud('ยกเลิกการสแกนคูปอง '+sid+' '+mealName(ml));show(tabNow);return toast('ยกเลิกแล้ว · กด “ย้อนกลับ” ได้')}
+ if(b=t.closest('[data-hsun]')){const o=state.orders.find(x=>x[9]===b.dataset.hsun&&x[8]===1);if(!o)return;snap();o[8]=0;state.shirts=Math.max(0,state.shirts-1);const i=state.sc.findIndex(x=>x[1]===o[9]&&x[2]==='รับเสื้อ');if(i>=0)state.sc.splice(i,1);aud('ยกเลิกการรับเสื้อ '+o[9]);show(tabNow);return toast('ยกเลิกการรับเสื้อแล้ว')}
+ if(b=t.closest('[data-hatdel]')){const k=b.dataset.hatdel;if(!state.att[k])return;snap();state.att[k]={st:'',at:Date.now(),by:state.sid||''};aud('ยกเลิกการเช็กชื่อ '+k);show(tabNow);return toast('ยกเลิกการเช็กชื่อแล้ว')}
+});
+GRP[2][1].push(['สินค้า','shirt']);
 /* ===== แจ้งเตือนในเว็บ ===== */
-const pane25=n=>n==='ค่าบำรุงสี'?payAdmin():n==='เช็กชื่อ'?attAdmin():n==='ส่งออกข้อมูล'?exportAdmin():n==='ตรวจรูปแกลเลอรี'?galAdmin():pane23(n);
-function show(n,quiet){tabNow=n;const a=$('#apanes'),ro=!can(n)&&!['ภาพรวม','บันทึกการทำงาน'].includes(n);if(!quiet){a.style.animation='none';a.offsetHeight;a.style.animation='enter .45s cubic-bezier(.2,.9,.3,1)'}a.innerHTML=lowB()+(ro?`<div class="chip" style="margin-bottom:14px">${ic('lock',14)}โหมดดูอย่างเดียว · บัญชีนี้แก้ไขส่วนนี้ไม่ได้</div>`:'')+pane25(n);a.classList.toggle('ro',ro);side(n);badge()}
+const pane25=n=>n==='สแกน'?scanHub():n==='สินค้า'?itemsAdmin():n==='สิทธิ์การเข้าถึงเมนู'?aclAdmin():n==='ค่าบำรุงสี'?payAdmin():n==='เช็กชื่อ'?attAdmin():n==='ส่งออกข้อมูล'?exportAdmin():n==='ตรวจรูปแกลเลอรี'?galAdmin():pane23(n);
+function show(n,quiet){if(n==='เช็กชื่อ'){shTab='att';n='สแกน'}if(!canView(n))n='ภาพรวม';tabNow=n;const a=$('#apanes'),ro=!can(n)&&!['ภาพรวม','บันทึกการทำงาน'].includes(n);if(!quiet){a.style.animation='none';a.offsetHeight;a.style.animation='enter .45s cubic-bezier(.2,.9,.3,1)'}a.innerHTML=lowB()+(ro?`<div class="chip" style="margin-bottom:14px">${ic('lock',14)}โหมดดูอย่างเดียว · บัญชีนี้แก้ไขส่วนนี้ไม่ได้</div>`:'')+pane25(n);a.classList.toggle('ro',ro);side(n);badge()}
 // เปิดหน้าตามลิงก์แจ้งเตือน
 const VIEWS=['home','sched','meal','profile','bill','crew','vote','map','stats','budget','songs','gallery','admin'];
 const goView=v=>{if(VIEWS.includes(v))go(v)};
